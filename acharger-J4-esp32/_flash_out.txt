@@ -1,0 +1,19 @@
+=== chip_id on COM5 === 
+esptool.py v4.8.1
+Serial port COM5
+
+A fatal error occurred: Could not open COM5, the port is busy or doesn't exist.
+(could not open port 'COM5': FileNotFoundError(2, '系统找不到指定的文件。', None, 2))
+
+Hint: Check if the port is correct and ESP connected
+
+=== flash === 
+esptool.py v4.8.1
+Serial port COM5
+
+A fatal error occurred: Could not open COM5, the port is busy or doesn't exist.
+(could not open port 'COM5': FileNotFoundError(2, '系统找不到指定的文件。', None, 2))
+
+Hint: Check if the port is correct and ESP connected
+
+EXITCODE=2 

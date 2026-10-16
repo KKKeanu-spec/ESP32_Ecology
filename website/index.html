@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 调试平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- ===================== 顶栏 ===================== -->
+    <header class="topbar">
+        <div class="brand">
+            <div class="logo">⚡</div>
+            <div class="brand-text">
+                <h1>ESP32 调试平台</h1>
+                <p class="sub">ESP32-C3 · BLE 透传 · TinyML</p>
+            </div>
+        </div>
+
+        <div class="conn-area">
+            <span id="statusDot" class="dot"></span>
+            <span id="statusText" class="status-text">未连接</span>
+            <button id="btnConnect" class="btn btn-primary">连接设备</button>
+            <button id="btnDisconnect" class="btn btn-ghost" disabled>断开</button>
+        </div>
+    </header>
+
+    <!-- ===================== 主体：左信息栏 + 右工作区 ===================== -->
+    <main class="shell">
+
+        <!-- ---------- 左侧边栏：连接状态 / 设备信息 / GATT ---------- -->
+        <aside class="sidebar">
+
+            <!-- ===== 连接状态总览 ===== -->
+            <section class="card">
+                <h2 class="card-title">连接状态</h2>
+
+                <div class="stat-row">
+                    <span class="stat-label">BLE 连接</span>
+                    <span id="stBle" class="stat-pill off">
+                        <i class="led"></i><span class="stat-text">未连接</span>
+                    </span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="stat-label">WiFi 连接</span>
+                    <span id="stWifi" class="stat-pill off">
+                        <i class="led"></i><span class="stat-text">未知</span>
+                    </span>
+                </div>
+
+                <dl class="kv kv-tight">
+                    <dt>WiFi 名称</dt>
+                    <dd id="stSsid">—</dd>
+                    <dt>设备 IP</dt>
+                    <dd id="stIp">—</dd>
+                    <dt>MQTT</dt>
+                    <dd id="stMqtt">—</dd>
+                </dl>
+
+                <p class="hint" id="stHint">
+                    WiFi 状态由 ESP32 上报（0x5A 应答）
+                </p>
+            </section>
+
+            <section class="card">
+                <h2 class="card-title">设备信息</h2>
+                <dl class="kv">
+                    <dt>设备名</dt>
+                    <dd id="infoName">—</dd>
+                    <dt>设备 ID</dt>
+                    <dd id="infoId">—</dd>
+                    <dt>协议类型</dt>
+                    <dd id="infoProtoType">—</dd>
+                    <dt>协议版本</dt>
+                    <dd id="infoProtoVer">—</dd>
+                </dl>
+                <button id="btnQueryHw" class="btn btn-block" disabled>查询硬件信息 (0x61)</button>
+            </section>
+
+            <section class="card card-scroll">
+                <h2 class="card-title">服务 / 特征</h2>
+                <div id="gattList" class="gatt-list">
+                    <p class="hint">连接后自动枚举</p>
+                </div>
+            </section>
+
+        </aside>
+
+        <!-- ---------- 右侧工作区 ---------- -->
+        <div class="workarea">
+
+            <!-- ===== 标签栏 ===== -->
+            <nav class="tabs">
+                <button class="tab active" data-tab="tab-net">网络配置</button>
+                <button class="tab" data-tab="tab-cloud">云端上报</button>
+                <button class="tab" data-tab="tab-feat">特征收发</button>
+                <button class="tab" data-tab="tab-ml">TinyML</button>
+            </nav>
+
+            <!-- ===== 面板：云端上报 ===== -->
+            <section class="tabpanel" id="tab-cloud">
+                <div class="panel-grid">
+
+                    <div class="card">
+                        <h2 class="card-title">服务器地址下发 <span class="tag">0xE4</span></h2>
+
+                        <div class="field">
+                            <label for="srvHost">服务器地址（IP 或域名）</label>
+                            <input type="text" id="srvHost" placeholder="192.168.1.100"
+                                value="192.168.1.100">
+                        </div>
+
+                        <div class="field">
+                            <label for="srvPort">端口</label>
+                            <input type="number" id="srvPort" placeholder="9000" value="9000" min="1" max="65535">
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="btnUseLocalIp" class="btn">填入本机提示</button>
+                            <button id="btnSendSrv" class="btn btn-primary" disabled>下发到 ESP32</button>
+                        </div>
+
+                        <p class="hint">
+                            报文: <code>[0xE4][portLo][portHi][host\0]</code>，ESP32 存入 NVS 并自动连服务器。<br>
+                            对应 Python 服务端: <code>tools/esp32_server.py</code>
+                        </p>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">下发结果</h2>
+
+                        <div class="field">
+                            <label>应答</label>
+                            <pre id="srvAck" class="hex-preview">等待下发…</pre>
+                        </div>
+
+                        <p class="hint">
+                            下发成功后，ESP32 会连接该地址。请在电脑上运行:<br>
+                            <code>python tools/esp32_server.py</code><br>
+                            ESP32 连上后，服务端终端会打印心跳（每 10 秒）与推理结果（每 2 秒）。
+                        </p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ===== 面板 1：网络配置 ===== -->
+            <section class="tabpanel active" id="tab-net">
+                <div class="panel-grid">
+
+                    <div class="card">
+                        <h2 class="card-title">WiFi 配置下发 <span class="tag">0x59</span></h2>
+
+                        <div class="field">
+                            <label>网络类型</label>
+                            <div class="radio-row">
+                                <label class="radio"><input type="radio" name="netType" value="2" checked> WiFi</label>
+                                <label class="radio"><input type="radio" name="netType" value="0"> 以太网</label>
+                                <label class="radio"><input type="radio" name="netType" value="1"> 4G</label>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label>IP 获取方式</label>
+                            <div class="radio-row">
+                                <label class="radio"><input type="radio" name="ipMode" value="1" checked> 动态
+                                    (DHCP)</label>
+                                <label class="radio"><input type="radio" name="ipMode" value="0"> 静态 IP</label>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label for="ssid">SSID</label>
+                            <input type="text" id="ssid" placeholder="WiFi 名称" maxlength="32">
+                        </div>
+
+                        <div class="field">
+                            <label for="passwd">密码</label>
+                            <input type="text" id="passwd" placeholder="WiFi 密码" maxlength="64">
+                        </div>
+
+                        <fieldset id="staticIpGroup" class="static-ip" disabled>
+                            <legend>静态 IP 参数</legend>
+                            <div class="grid-2">
+                                <div class="field"><label>IP</label><input type="text" id="ip" value="192.168.1.101">
+                                </div>
+                                <div class="field"><label>掩码</label><input type="text" id="netmask"
+                                        value="255.255.255.0"></div>
+                                <div class="field"><label>网关</label><input type="text" id="gw" value="192.168.1.1">
+                                </div>
+                                <div class="field"><label>DNS</label><input type="text" id="dns" value="223.5.5.5">
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div class="field">
+                            <label>发送通道</label>
+                            <div class="radio-row">
+                                <label class="radio"><input type="radio" name="txPath" value="0xABF1" checked>
+                                    0xABF1</label>
+                                <label class="radio"><input type="radio" name="txPath" value="0xABF3"> 0xABF3</label>
+                            </div>
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="btnBuildWifi" class="btn">生成报文</button>
+                            <button id="btnSendWifi" class="btn btn-primary" disabled>发送</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h2 class="card-title">报文预览 (HEX)</h2>
+                        <pre id="wifiHex" class="hex-preview tall">—</pre>
+                        <p class="hint">
+                            协议格式: <code>[0x59][网络类型][IP方式][SSID长度][密码长度][SSID][密码]</code><br>
+                            已由真实抓包验证（20 字节）
+                        </p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ===== 面板 2：特征收发 ===== -->
+            <section class="tabpanel" id="tab-feat">
+                <div class="panel-grid feat-grid">
+
+                    <!-- 0xABF1 -->
+                    <div class="card">
+                        <h2 class="card-title">
+                            <span class="feat-badge tx-badge">写</span>
+                            0xABF1 数据接收
+                            <span class="spacer"></span>
+                            <span class="feat-dir">APP → ESP32</span>
+                        </h2>
+                        <div class="field">
+                            <label>发送数据 (HEX)</label>
+                            <textarea id="f1Hex" rows="2" placeholder="59 02 01 07 08 ..."></textarea>
+                        </div>
+                        <div class="field">
+                            <label>或发送文本 (UTF-8)</label>
+                            <input type="text" id="f1Text" placeholder="hello esp32">
+                        </div>
+                        <div class="btn-row">
+                            <button id="f1SendHex" class="btn btn-primary" disabled>发送 HEX</button>
+                            <button id="f1SendText" class="btn" disabled>发送文本</button>
+                        </div>
+                        <p class="hint" id="f1Info">未连接</p>
+                    </div>
+
+                    <!-- 0xABF2 -->
+                    <div class="card">
+                        <h2 class="card-title">
+                            <span class="feat-badge rx-badge">收</span>
+                            0xABF2 数据通知
+                            <span class="spacer"></span>
+                            <span class="feat-dir">ESP32 → APP</span>
+                        </h2>
+                        <div class="field">
+                            <label>订阅状态</label>
+                            <div id="f2SubState" class="sub-state off">未订阅</div>
+                        </div>
+                        <div class="btn-row">
+                            <button id="f2Subscribe" class="btn" disabled>订阅</button>
+                            <button id="f2Unsubscribe" class="btn btn-ghost" disabled>取消订阅</button>
+                        </div>
+                        <div class="field">
+                            <label>最近接收</label>
+                            <pre id="f2Last" class="hex-preview">—</pre>
+                        </div>
+                        <p class="hint" id="f2Info">未连接</p>
+                    </div>
+
+                    <!-- 0xABF3 -->
+                    <div class="card">
+                        <h2 class="card-title">
+                            <span class="feat-badge tx-badge">写</span>
+                            0xABF3 命令接收
+                            <span class="spacer"></span>
+                            <span class="feat-dir">APP → ESP32</span>
+                        </h2>
+                        <div class="field">
+                            <label>发送命令 (HEX，上限 20B)</label>
+                            <textarea id="f3Hex" rows="2" placeholder="61"></textarea>
+                        </div>
+                        <div class="btn-row">
+                            <button id="f3Send" class="btn btn-primary" disabled>发送命令</button>
+                            <button id="f3QueryHw" class="btn" disabled>查询硬件(0x61)</button>
+                        </div>
+                        <p class="hint" id="f3Info">未连接</p>
+                    </div>
+
+                    <!-- 0xABF4 -->
+                    <div class="card">
+                        <h2 class="card-title">
+                            <span class="feat-badge rx-badge">收</span>
+                            0xABF4 状态通知
+                            <span class="spacer"></span>
+                            <span class="feat-dir">ESP32 → APP</span>
+                        </h2>
+                        <div class="field">
+                            <label>订阅状态</label>
+                            <div id="f4SubState" class="sub-state off">未订阅</div>
+                        </div>
+                        <div class="btn-row">
+                            <button id="f4Subscribe" class="btn" disabled>订阅</button>
+                            <button id="f4Unsubscribe" class="btn btn-ghost" disabled>取消订阅</button>
+                        </div>
+                        <div class="field">
+                            <label>最近接收</label>
+                            <pre id="f4Last" class="hex-preview">—</pre>
+                        </div>
+                        <p class="hint" id="f4Info">未连接</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- ===== 面板 3：TinyML ===== -->
+            <section class="tabpanel" id="tab-ml">
+                <div class="panel-grid">
+
+                    <!-- 周期启停 -->
+                    <div class="card">
+                        <h2 class="card-title">周期推理控制</h2>
+
+                        <div class="field">
+                            <label>运行状态</label>
+                            <div id="mlRunState" class="sub-state off">未知（未连接）</div>
+                        </div>
+
+                        <div class="btn-row">
+                            <button id="btnMlStart" class="btn btn-primary" disabled>启动周期推理 (0xE1)</button>
+                            <button id="btnMlStop" class="btn btn-danger" disabled>停止 (0xE0)</button>
+                        </div>
+
+                        <p class="hint">
+                            周期任务每 2 秒推进一步相位（1/32 周期/步），结果自动从 0xABF2 推送。<br>
+                            收到 <code>0xE1</code>/<code>0xE0</code> 应答后状态会更新。
+                        </p>
+                    </div>
+
+                    <!-- 单次推理 -->
+                    <div class="card">
+                        <h2 class="card-title">单次推理</h2>
+
+                        <div class="ml-row">
+                            <div class="field">
+                                <label>输入相位 x (0 ~ 1)</label>
+                                <input type="number" id="mlInput" value="0.25" min="0" max="1" step="0.01">
+                            </div>
+                            <div class="field">
+                                <label>发送通道</label>
+                                <select id="mlPath">
+                                    <option value="0xABF1">0xABF1 数据</option>
+                                    <option value="0xABF3">0xABF3 命令</option>
+                                </select>
+                            </div>
+                            <button id="btnMlRun" class="btn btn-primary" disabled>推理 (0xE2)</button>
+                        </div>
+
+                        <div class="field">
+                            <label>最近结果</label>
+                            <pre id="mlLast" class="hex-preview">—</pre>
+                        </div>
+
+                        <p class="hint">
+                            报文: <code>[0xE2][float x 小端]</code>，应答: <code>[0xE2][float y 小端]</code>
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- 实时结果表 -->
+                <div class="card" style="margin-top:12px;">
+                    <h2 class="card-title">
+                        实时推理结果（周期推送）
+                        <span class="spacer"></span>
+                        <span id="mlCount" class="tag">0 条</span>
+                    </h2>
+                    <div class="ml-table-wrap">
+                        <table class="ml-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>x (相位)</th>
+                                    <th>pred</th>
+                                    <th>truth = sin(2πx)</th>
+                                    <th>err</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mlTbody">
+                                <tr>
+                                    <td colspan="5" class="hint" style="text-align:center;">等待数据…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:12px;">
+                    <h2 class="card-title">模型信息</h2>
+                    <dl class="kv kv-wide">
+                        <dt>结构</dt>
+                        <dd>Dense(1→16,tanh) → Dense(16→16,tanh) → Dense(1)</dd>
+                        <dt>参数</dt>
+                        <dd>321 floats (1284 B)，编入固件，不占用额外分区</dd>
+                        <dt>精度</dt>
+                        <dd>训练 MSE 3.1e-7 · MaxAbsErr 0.0026 · 板载实测误差约 1e-4</dd>
+                        <dt>耗时</dt>
+                        <dd>约 1294 μs / 次（ESP32-C3 无 FPU，tanh 为软件实现）</dd>
+                        <dt>周期</dt>
+                        <dd>2000 ms（可由 BLE 远程启停）</dd>
+                    </dl>
+                </div>
+            </section>
+
+            <!-- ===== 控制台（固定在底部） ===== -->
+            <section class="card console-card">
+                <h2 class="card-title">
+                    收发日志
+                    <span class="spacer"></span>
+                    <label class="chk"><input type="checkbox" id="autoScroll" checked> 自动滚动</label>
+                    <button id="btnClearLog" class="btn btn-tiny">清空</button>
+                </h2>
+                <div id="console" class="console">
+                    <p class="hint">等待操作…</p>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- ===================== 底部状态栏 ===================== -->
+    <footer class="statusbar">
+        <span id="footMsg">就绪 · 点击「连接设备」开始（需 Chrome / Edge，通过 localhost 或 HTTPS 访问）</span>
+    </footer>
+
+    <script src="js/ble.js"></script>
+    <script src="js/protocol.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>

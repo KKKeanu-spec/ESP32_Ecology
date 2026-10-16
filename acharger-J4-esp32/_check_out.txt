@@ -1,0 +1,20 @@
+=== python exists === 
+YES 
+=== gcc exists === 
+YES 
+=== esp-rom-elfs exists === 
+YES 
+=== chip on COM5 === 
+esptool.py v4.8.1
+Serial port COM5
+Connecting......................................
+
+A fatal error occurred: Failed to connect to ESP32-C3: Invalid head of packet (0xFF): Possible serial noise or corruption.
+For troubleshooting steps visit: https://docs.espressif.com/projects/esptool/en/latest/troubleshooting.html
+=== chip on COM25 === 
+esptool.py v4.8.1
+Serial port COM25
+
+A fatal error occurred: Could not open COM25, the port is busy or doesn't exist.
+(could not open port 'COM25': PermissionError(13, '¾Ü¾ø·ÃÎÊ¡£', None, 5))
+

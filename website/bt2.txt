@@ -1,0 +1,146 @@
+=== Bluetooth class devices === 
+Microsoft PnP Utility
+
+Instance ID:                BTHLEDevice\{00001800-0000-1000-8000-00805f9b34fb}_Dev_VID&02000e_PID&3412_REV&6701_f4ee25c76120\8&2a807804&0&0001
+Device Description:         Generic Access Profile
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bthleenum.inf
+
+Instance ID:                BTHENUM\Dev_5471DD5BDBD0\7&25ca539&0&BluetoothDevice_5471DD5BDBD0
+Device Description:         HUAWEI FreeBuds 4i
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bth.inf
+
+Instance ID:                BTHLE\Dev_f4ee25c76120\7&3d0ea8e&0&f4ee25c76120
+Device Description:         RAPOO 5.0MS
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bthleenum.inf
+
+Instance ID:                BTH\MS_RFCOMM\6&3039619&0&0
+Device Description:         Bluetooth Device (RFCOMM Protocol TDI)
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                tdibth.inf
+
+Instance ID:                BTHLEDevice\{00001801-0000-1000-8000-00805f9b34fb}_Dev_VID&02000e_PID&3412_REV&6701_f4ee25c76120\8&2a807804&0&000a
+Device Description:         Generic Attribute Profile
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bthleenum.inf
+
+Instance ID:                BTHENUM\{00001200-0000-1000-8000-00805f9b34fb}_VID&000102b0_PID&0000\7&25ca539&0&9C5636F8DA89_C00000000
+Device Description:         Device Identification Service
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bth.inf
+
+Instance ID:                BTHENUM\{0000110e-0000-1000-8000-00805f9b34fb}_VID&000102b0_PID&0000\7&25ca539&0&9C5636F8DA89_C00000000
+Device Description:         HUAWEI FreeBuds 4i Avrcp Transport
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                microsoft_bluetooth_avrcptransport.inf
+
+Instance ID:                BTHENUM\{00001200-0000-1000-8000-00805f9b34fb}_VID&000102b0_PID&0000\7&25ca539&0&5471DD5BDBD0_C00000000
+Device Description:         Device Identification Service
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bth.inf
+
+Instance ID:                BTH\MS_BTHBRB\6&3039619&0&1
+Device Description:         Microsoft Bluetooth Enumerator
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bth.inf
+
+Instance ID:                BTHLEDevice\{0000180a-0000-1000-8000-00805f9b34fb}_Dev_VID&02000e_PID&3412_REV&6701_f4ee25c76120\8&2a807804&0&000e
+Device Description:         Device Information Service
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bthleenum.inf
+
+Instance ID:                BTH\MS_BTHLE\6&3039619&0&3
+Device Description:         Microsoft Bluetooth LE Enumerator
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bthleenum.inf
+
+Instance ID:                BTHENUM\Dev_9C5636F8DA89\7&25ca539&0&BluetoothDevice_9C5636F8DA89
+Device Description:         HUAWEI FreeBuds 4i
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bth.inf
+
+Instance ID:                BTHENUM\{0000110e-0000-1000-8000-00805f9b34fb}_VID&000102b0_PID&0000\7&25ca539&0&5471DD5BDBD0_C00000000
+Device Description:         HUAWEI FreeBuds 4i Avrcp Transport
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                microsoft_bluetooth_avrcptransport.inf
+
+Instance ID:                BTHLEDevice\{0000180f-0000-1000-8000-00805f9b34fb}_Dev_VID&02000e_PID&3412_REV&6701_f4ee25c76120\8&2a807804&0&0015
+Device Description:         Bluetooth LE Generic Attribute Service
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Microsoft
+Status:                     Started
+Driver Name:                bthleenum.inf
+
+Instance ID:                USB\VID_8087&PID_0026\5&1a2aaa03&0&10
+Device Description:         Ó¢ÌØ¶û(R) ÎÞÏß Bluetooth(R)
+Class Name:                 Bluetooth
+Class GUID:                 {e0cbf06c-cd8b-4647-bb8a-263b43f0f974}
+Manufacturer Name:          Intel Corporation
+Status:                     Started
+Driver Name:                oem111.inf
+
+ 
+=== bthserv === 
+
+SERVICE_NAME: bthserv 
+        TYPE               : 30  WIN32  
+        STATE              : 4  RUNNING 
+                                (STOPPABLE, NOT_PAUSABLE, ACCEPTS_SHUTDOWN)
+        WIN32_EXIT_CODE    : 0  (0x0)
+        SERVICE_EXIT_CODE  : 0  (0x0)
+        CHECKPOINT         : 0x0
+        WAIT_HINT          : 0x0
+ 
+=== radiorg === 
+
+
+ERROR: The system was unable to find the specified registry key or value.
+ 
+=== radio devices === 
+    DeviceDesc    REG_SZ    @bth.inf,%bth\ms_bthbrb.devicedesc%;Microsoft Bluetooth Enumerator
+    DeviceDesc    REG_SZ    @bthleenum.inf,%bth\ms_bthle.devicedesc%;Microsoft Bluetooth LE Enumerator
+    DeviceDesc    REG_SZ    @bthpan.inf,%bthpan.displayname%;Bluetooth Device (Personal Area Network)
+    DeviceDesc    REG_SZ    @tdibth.inf,%rfcomm.displayname%;Bluetooth Device (RFCOMM Protocol TDI)
+=== DONE === 

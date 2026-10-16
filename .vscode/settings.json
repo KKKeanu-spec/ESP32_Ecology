@@ -1,0 +1,9 @@
+{
+    "files.exclude": {
+        "**/build": false
+    },
+    "search.exclude": {
+        "**/build": true
+    },
+    "cmake.sourceDirectory": "C:/Users/huangguoyuan/Desktop/fcu_pwm_710/TinyML_ESP32C3/acharger-J4-esp32"
+}

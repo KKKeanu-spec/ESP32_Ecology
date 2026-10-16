@@ -1,0 +1,7 @@
+/build
+/.vscode
+/uart.txt
+/.clang-format
+/sdkconfig.old
+/flow.md
+/debug.log
