@@ -22,10 +22,15 @@
 extern "C" {
 #endif
 
-/// @brief 推理周期(ms)，默认 2000
+/// @brief 推理周期(ms)，默认 5000
+///        周期越短，BLE 推送与串口日志越频繁；5s 在演示效果与负载间较均衡
 #ifndef TINYML_PERIOD_MS
-#define TINYML_PERIOD_MS (2000)
+#define TINYML_PERIOD_MS (5000)
 #endif
+
+/// @brief 允许的周期范围(ms)，防止被设成 0 或过小导致任务密集占用 CPU
+#define TINYML_PERIOD_MIN_MS (200)
+#define TINYML_PERIOD_MAX_MS (60000)
 
 /// @brief 任务创建后延迟多久才开始工作(ms)
 ///        BLE+WiFi 共存时，等待 WiFi 扫描/认证完成，避免抢占 CPU 导致复位

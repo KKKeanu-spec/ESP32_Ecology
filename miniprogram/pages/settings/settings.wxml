@@ -1,0 +1,87 @@
+<view class="page">
+
+  <!-- 云端服务器 -->
+  <view class="card">
+    <view class="card-title">
+      <text>云端服务器</text>
+      <text class="sub">命令码 0xE4</text>
+    </view>
+
+    <view class="field">
+      <view class="field-label">地址（IP 或域名，最多 63 字符）</view>
+      <input class="input" value="{{host}}" placeholder="192.168.1.10" bindinput="onHost" placeholder-class="ph" />
+    </view>
+
+    <view class="field">
+      <view class="field-label">端口</view>
+      <input class="input" type="number" value="{{port}}" placeholder="9000" bindinput="onPort" placeholder-class="ph" />
+    </view>
+
+    <view class="btn-row">
+      <button class="btn primary" bindtap="onSend" disabled="{{!connected || sending}}">下发并保存</button>
+    </view>
+
+    <view class="row" wx:if="{{ackVisible}}" style="margin-top:20rpx">
+      <text class="label">应答</text>
+      <text class="badge {{ackOk ? 'ok' : 'err'}}">{{ackOk ? '保存成功' : '保存失败'}} · 端口 {{ackPort}}</text>
+    </view>
+
+    <view class="notice" style="margin-top:20rpx;margin-bottom:0">
+      设备先通过 BLE 配好 WiFi，再用这里下发 TCP 服务器地址；固件会写入 NVS 并立即重连。地址长度超过 20 字节时会自动分片。
+    </view>
+  </view>
+
+  <!-- 连接设置 -->
+  <view class="card">
+    <view class="card-title">
+      <text>连接设置</text>
+    </view>
+    <view class="row">
+      <view style="flex:1">
+        <view class="label" style="font-size:28rpx;color:#e6edf3">断线自动重连</view>
+        <view style="font-size:22rpx;color:#6e7681;margin-top:6rpx">断开后按 0.8s → 15s 退避重试</view>
+      </view>
+      <switch checked="{{autoReconnect}}" color="#2f81f7" bindchange="onAutoReconnect" />
+    </view>
+    <view class="row">
+      <text class="label">已记住设备</text>
+      <text class="value">{{deviceCount}} 台</text>
+    </view>
+    <view class="btn-row" style="margin-top:20rpx">
+      <button class="btn danger small" bindtap="onForget">清除设备记录</button>
+    </view>
+  </view>
+
+  <!-- 关于 -->
+  <view class="card">
+    <view class="card-title">
+      <text>关于</text>
+      <text class="sub">{{version}}</text>
+    </view>
+    <view class="row">
+      <text class="label">主服务</text>
+      <text class="value mono">00010108-…-00805F9B34FB</text>
+    </view>
+    <view class="row">
+      <text class="label">数据写 / 通知</text>
+      <text class="value mono">0xABF1 / 0xABF2</text>
+    </view>
+    <view class="row">
+      <text class="label">命令写 / 状态</text>
+      <text class="value mono">0xABF3 / 0xABF4</text>
+    </view>
+    <view class="row">
+      <text class="label">单次写入上限</text>
+      <text class="value mono">{{chunkSize}} 字节（自动分片）</text>
+    </view>
+    <view class="row">
+      <text class="label">平台</text>
+      <text class="value">{{platform || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">连接状态</text>
+      <text class="badge {{connected ? 'ok' : 'err'}}">{{connected ? '已连接' : '未连接'}}</text>
+    </view>
+  </view>
+
+</view>

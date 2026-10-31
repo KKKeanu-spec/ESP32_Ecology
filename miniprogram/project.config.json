@@ -1,0 +1,51 @@
+{
+  "appid": "wxa9dec6e12ca74ca7",
+  "compileType": "miniprogram",
+  "libVersion": "3.5.5",
+  "projectname": "race22-ble-console",
+  "description": "RACE 22 BLE 调试/控制台（与 website/ Web Bluetooth 版功能对齐）",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": true,
+    "checkInvalidKey": true,
+    "uglifyFileName": false,
+    "compileWorklet": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {
+    "miniprogram": {
+      "list": [
+        {
+          "id": 0,
+          "name": "设备页",
+          "pathName": "pages/index/index",
+          "query": "",
+          "scene": null
+        }
+      ]
+    }
+  },
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {}
+}

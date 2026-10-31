@@ -11,6 +11,7 @@
 #include "esp_gatts_api.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
@@ -118,6 +119,178 @@ typedef struct spp_receive_data_buff
 
 static spp_receive_data_buff_t SppRecvDataBuff = {.node_num = 0, .buff_size = 0, .first_node = NULL};
 
+/* ========================================================================== */
+/* 下行分片重组（微信小程序 / 浏览器兼容层）                                     */
+/* ========================================================================== */
+/* 背景：
+ *   微信小程序单次 writeBLECharacteristicValue 上限 20 字节，浏览器也受 MTU-3
+ *   限制。而 0x59(配网) / 0xE4(服务器地址) 是长帧，必须切成多片发送。
+ *   改造前每收到一次写事件就直接交给 ble_app_handle_data()，长帧会被截断解析。
+ *
+ * 策略：
+ *   按「命令码 + 载荷里的长度字段」推算整帧长度，攒够再交付。
+ *   - 一帧能一次写完时（浏览器 / 原厂 APP 的常见情况）走立即分发，行为不变
+ *   - 只有确实被切片的帧才进入缓冲，因此对现有客户端完全向后兼容
+ *
+ * 注意：
+ *   0x59 静态 IP 模式会在密码后追加 16 字节，本推算不包含该段（当前固件
+ *   ble_app_net_set 也不解析静态 IP），多出的字节会被丢弃。
+ * ========================================================================== */
+
+#define SPP_RX_ASM_SIZE     (512)
+#define SPP_RX_ASM_TIMEOUT  (300)   /* ms，超过则丢弃半帧，避免两帧粘连 */
+#define SPP_RX_LEN_UNKNOWN  (0xFFFF)
+
+typedef struct
+{
+    uint8_t  buf[SPP_RX_ASM_SIZE];
+    uint16_t len;
+    uint16_t expect;
+    int64_t  last_ms;
+    bool     active;
+} spp_rx_asm_t;
+
+static spp_rx_asm_t s_rx_asm;
+
+static void spp_rx_asm_reset(void)
+{
+    s_rx_asm.active = false;
+    s_rx_asm.len    = 0;
+    s_rx_asm.expect = 0;
+}
+
+/**
+ * @brief 推算整帧长度
+ * @param d   帧首字节起的数据
+ * @param len 当前已有字节数
+ * @return 0 = 未知命令（无需重组）；SPP_RX_LEN_UNKNOWN = 长度待定；其它 = 期望总长
+ */
+static uint16_t spp_rx_expect(const uint8_t *d, uint16_t len)
+{
+    switch (d[0])
+    {
+    case 0x59: /* [cmd][netType][ipMode][ssidLen][pwdLen][ssid][pwd] */
+        if (len < 5)
+        {
+            return SPP_RX_LEN_UNKNOWN;
+        }
+        return (uint16_t)(5 + d[3] + d[4]);
+
+    case 0x61: /* 查询硬件信息 */
+    case 0xE0: /* 停止推理 */
+    case 0xE1: /* 启动推理 */
+        return 1;
+
+    case 0xE2: /* 单次推理 [cmd][float x] */
+        return 5;
+
+    case 0xE4: /* [cmd][portLo][portHi][host + '\0'] */
+    {
+        if (len < 4)
+        {
+            return SPP_RX_LEN_UNKNOWN;
+        }
+        const uint8_t *z = (const uint8_t *)memchr(&d[3], 0, len - 3);
+        if (z != NULL)
+        {
+            return (uint16_t)((z - d) + 1);
+        }
+        return SPP_RX_LEN_UNKNOWN; /* 终止符还在后续分片里 */
+    }
+
+    default:
+        return 0;
+    }
+}
+
+/**
+ * @brief 处理一次 BLE 写事件（可能是完整帧，也可能是长帧的一片）
+ */
+static void spp_rx_feed(const uint8_t *data, uint16_t len)
+{
+    if (data == NULL || len == 0)
+    {
+        return;
+    }
+
+    int64_t now = esp_timer_get_time() / 1000;
+
+    /* 半帧超时保护 */
+    if (s_rx_asm.active && (now - s_rx_asm.last_ms) > SPP_RX_ASM_TIMEOUT)
+    {
+        ESP_LOGW(GATTS_LOG, "下行重组超时，丢弃已缓存的 %u 字节", s_rx_asm.len);
+        spp_rx_asm_reset();
+    }
+
+    /* ---------- 情况一：当前没有在攒帧 ---------- */
+    if (!s_rx_asm.active)
+    {
+        uint16_t expect = spp_rx_expect(data, len);
+
+        if (expect == 0)
+        {
+            /* 未知命令：保持原行为，交给上层打印「未识别」 */
+            ble_app_handle_data(data, len);
+            return;
+        }
+
+        if (expect != SPP_RX_LEN_UNKNOWN && len >= expect)
+        {
+            /* 一包就是完整帧（浏览器 / 原厂 APP 的路径） */
+            ble_app_handle_data(data, len);
+            return;
+        }
+
+        if (len > SPP_RX_ASM_SIZE)
+        {
+            ESP_LOGE(GATTS_LOG, "单帧超过上限 %d 字节，丢弃", SPP_RX_ASM_SIZE);
+            return;
+        }
+
+        memcpy(s_rx_asm.buf, data, len);
+        s_rx_asm.len     = len;
+        s_rx_asm.expect  = expect;
+        s_rx_asm.active  = true;
+        s_rx_asm.last_ms = now;
+        ESP_LOGI(GATTS_LOG, "下行分片开始: 首片 %u 字节, 期望长度 %s",
+                 len, (expect == SPP_RX_LEN_UNKNOWN) ? "待定" : "已确定");
+        return;
+    }
+
+    /* ---------- 情况二：追加到当前帧 ---------- */
+    if ((uint32_t)s_rx_asm.len + len > SPP_RX_ASM_SIZE)
+    {
+        ESP_LOGE(GATTS_LOG, "下行重组溢出(%u + %u)，丢弃", s_rx_asm.len, len);
+        spp_rx_asm_reset();
+        return;
+    }
+
+    memcpy(&s_rx_asm.buf[s_rx_asm.len], data, len);
+    s_rx_asm.len     = (uint16_t)(s_rx_asm.len + len);
+    s_rx_asm.last_ms = now;
+
+    /* 首片拿不到长度时（如 0xE4 的 '\0' 落在后面），这里重新推算 */
+    uint16_t expect = spp_rx_expect(s_rx_asm.buf, s_rx_asm.len);
+    if (expect != 0)
+    {
+        s_rx_asm.expect = expect;
+    }
+
+    if ((s_rx_asm.expect != SPP_RX_LEN_UNKNOWN) && (s_rx_asm.expect != 0) &&
+        (s_rx_asm.len >= s_rx_asm.expect))
+    {
+        uint8_t *frame = s_rx_asm.buf;
+        uint16_t n     = s_rx_asm.len;
+        ESP_LOGI(GATTS_LOG, "下行重组完成: %u 字节（期望 %u）", n, s_rx_asm.expect);
+        spp_rx_asm_reset(); /* 只清标志，不动 buf，随后立即交付 */
+        ble_app_handle_data(frame, n);
+        return;
+    }
+
+    ESP_LOGI(GATTS_LOG, "下行分片累积: %u 字节（期望 %s）",
+             s_rx_asm.len, (s_rx_asm.expect == SPP_RX_LEN_UNKNOWN) ? "待定" : "已确定");
+}
+
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                         esp_ble_gatts_cb_param_t *param);
 
@@ -142,7 +315,12 @@ static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
 static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
 
 static const uint8_t char_prop_read_notify         = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
-static const uint8_t char_prop_read_write          = ESP_GATT_CHAR_PROP_BIT_WRITE_NR | ESP_GATT_CHAR_PROP_BIT_READ;
+/* 同时声明「带响应写(WRITE)」与「无响应写(WRITE_NR)」：
+ * - 浏览器 Web Bluetooth 默认走 WRITE_NR，行为不变
+ * - 安卓微信小程序的 writeBLECharacteristicValue 依赖带响应写，只声明 WRITE_NR 会报 10008 写失败 */
+static const uint8_t char_prop_read_write          = ESP_GATT_CHAR_PROP_BIT_WRITE |
+                                                     ESP_GATT_CHAR_PROP_BIT_WRITE_NR |
+                                                     ESP_GATT_CHAR_PROP_BIT_READ;
 
 /// SPP Service - data receive characteristic, read&write without response
 static const uint16_t spp_data_receive_uuid        = ESP_GATT_UUID_SPP_DATA_RECEIVE;
@@ -472,8 +650,9 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
 
                 /* 主机模式: 命令通道同样交由 ESP32 自行解析。
                  * 不分配临时缓冲，直接使用写回调中的数据指针（回调返回即失效，
-                 * 故同步处理），顺便消除原实现的 malloc 内存泄漏。 */
-                ble_app_handle_data(p_data->write.value, p_data->write.len);
+                 * 故同步处理），顺便消除原实现的 malloc 内存泄漏。
+                 * 注意: 小程序写入是 20 字节分片，这里必须先过重组层。 */
+                spp_rx_feed(p_data->write.value, p_data->write.len);
             }
             else if (res == SPP_IDX_SPP_DATA_NTF_CFG)
             {
@@ -497,7 +676,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOG_BUFFER_HEXDUMP(GATTS_LOG, (char *)(p_data->write.value), p_data->write.len, ESP_LOG_DEBUG);
 
                 /* 主机模式: 不再转发给 GD32/CCU，由 ESP32 自行解析处理 */
-                ble_app_handle_data(p_data->write.value, p_data->write.len);
+                spp_rx_feed(p_data->write.value, p_data->write.len);
             }
             else
             {
@@ -550,6 +729,7 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     case ESP_GATTS_DISCONNECT_EVT:
         is_connected    = false;
         enable_data_ntf = false;
+        spp_rx_asm_reset(); /* 丢弃可能残留的半帧，避免下次连接后被拼到新帧上 */
         ESP_LOGW(GATTS_LOG, "=== BLE 已断开 (reason=0x%02X) ===", p_data->disconnect.reason);
         esp_ble_gap_start_advertising(&adv_params);
         ESP_LOGI(GATTS_LOG, "BLE 重新开始广播，等待新的连接");

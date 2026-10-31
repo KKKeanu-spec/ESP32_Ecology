@@ -1,0 +1,84 @@
+<view class="page">
+
+  <!-- 适配器未就绪 -->
+  <view class="notice warn" wx:if="{{!adapterReady}}">
+    蓝牙适配器未就绪。点击「开始扫描」会请求打开蓝牙；请确认手机蓝牙已开启。
+  </view>
+
+  <!-- 连接状态 -->
+  <view class="card">
+    <view class="card-title">
+      <text>连接状态</text>
+      <text class="badge {{connected ? 'ok' : 'err'}}">{{connected ? '已连接' : '未连接'}}</text>
+    </view>
+
+    <view class="row">
+      <text class="label">设备名</text>
+      <text class="value">{{deviceName || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">deviceId</text>
+      <text class="value mono">{{deviceId || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">MTU</text>
+      <text class="value mono">{{connected ? mtu : '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">平台</text>
+      <text class="value">{{platform || '—'}}</text>
+    </view>
+
+    <view class="notice err" wx:if="{{err}}" style="margin-top:16rpx;margin-bottom:0">{{err}}</view>
+
+    <view class="btn-row" style="margin-top:24rpx">
+      <button class="btn primary" bindtap="onScan" disabled="{{scanning}}">开始扫描</button>
+      <button class="btn ghost" bindtap="onStop" disabled="{{!scanning}}">停止扫描</button>
+    </view>
+    <view class="btn-row" style="margin-top:16rpx" wx:if="{{connected}}">
+      <button class="btn danger" bindtap="onDisconnect">断开连接</button>
+    </view>
+    <view class="btn-row" style="margin-top:16rpx" wx:if="{{!connected && lastDevice}}">
+      <button class="btn ghost" bindtap="onReconnectLast">重连 {{lastDevice.name || '上次设备'}}</button>
+    </view>
+  </view>
+
+  <!-- 扫描结果 -->
+  <view class="card">
+    <view class="card-title">
+      <text>附近设备</text>
+      <text class="sub">{{scanning ? '扫描中…' : devices.length + ' 台'}}</text>
+    </view>
+
+    <view class="empty" wx:if="{{!devices.length}}">
+      {{scanning ? '正在搜索广播…' : '点击「开始扫描」搜索 RACE 22'}}
+    </view>
+
+    <view class="list-item" wx:for="{{devices}}" wx:key="deviceId" data-id="{{item.deviceId}}" data-name="{{item.name}}" bindtap="onConnect">
+      <view style="flex:1;min-width:0">
+        <view class="name">{{item.name || '(未命名设备)'}}</view>
+        <view class="desc mono">{{item.deviceId}}</view>
+      </view>
+      <view class="right">
+        <text class="badge info" wx:if="{{item.hitSvc}}">主服务</text>
+        <text class="badge {{item.cls}}">{{item.rssi}} dBm</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="card">
+    <view class="card-title">
+      <text>快捷操作</text>
+    </view>
+    <view class="btn-row">
+      <button class="btn small ghost" bindtap="goConfig" disabled="{{!connected}}">WiFi 配网</button>
+      <button class="btn small ghost" bindtap="goInfo" disabled="{{!connected}}">设备信息</button>
+      <button class="btn small ghost" bindtap="goDebug" disabled="{{!connected}}">调试</button>
+    </view>
+    <view class="notice" style="margin-top:20rpx;margin-bottom:0">
+      一个 BLE 从机同时只能被一台中心设备连接。若手机连不上，请先在电脑浏览器里断开或关掉其他手机的连接。
+    </view>
+  </view>
+
+</view>

@@ -29,6 +29,10 @@ static const char *TAG = "TinyML-App";
 static TaskHandle_t s_task     = NULL;
 static volatile bool s_running = false;
 
+/* 恢复任务时置位，通知任务循环重置 vTaskDelayUntil 的时间基准，
+ * 避免挂起期间的"追赶式"连续执行。 */
+static volatile bool s_reset_wake = false;
+
 /* 结果订阅者：支持多个上层模块同时订阅推理结果。
  * BLE 通道(ble_app) 与 WiFi 通道(net_report) 可各自注册一个回调，
  * 避免互相覆盖。用回调而非直接调用，避免 tinyml 反向依赖其他组件。 */
@@ -121,6 +125,16 @@ static void tinyml_task(void *arg)
 
     for (;;)
     {
+        /* 被 vTaskResume 恢复时重置时间基准。
+         * vTaskDelayUntil 用的是绝对时间：若任务被挂起较久，
+         * 恢复后 last_wake 已严重落后当前时刻，会连续"追赶"执行
+         * （表现为短时间爆发式推理），因此必须重置。 */
+        if (s_reset_wake)
+        {
+            s_reset_wake = false;
+            last_wake    = xTaskGetTickCount();
+        }
+
         float phase = (float)s_step / (float)PHASE_STEPS;
         s_step      = (s_step + 1) % PHASE_STEPS;
 
@@ -158,6 +172,9 @@ void tinyml_start(void)
         ESP_LOGI(TAG, "tinyml already running");
         return;
     }
+
+    /* 先置位再恢复：任务一旦被唤醒即会重置时间基准 */
+    s_reset_wake = true;
     vTaskResume(s_task);
     s_running = true;
     ESP_LOGI(TAG, "tinyml resumed (running)");

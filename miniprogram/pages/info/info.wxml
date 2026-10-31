@@ -1,0 +1,85 @@
+<view class="page">
+
+  <view class="notice warn" wx:if="{{!connected}}">
+    设备未连接，无法查询硬件信息。
+  </view>
+
+  <view class="card">
+    <view class="card-title">
+      <text>硬件信息（0x62）</text>
+      <text class="sub">{{queried ? queriedAt : '未查询'}}</text>
+    </view>
+
+    <block wx:if="{{info}}">
+      <view class="row">
+        <text class="label">协议类型</text>
+        <text class="value mono">0x{{protoTypeHex}}（{{info.protoType}}）</text>
+      </view>
+      <view class="row">
+        <text class="label">协议版本</text>
+        <text class="value mono">{{info.protoVer}}</text>
+      </view>
+      <view class="row">
+        <text class="label">硬件名称</text>
+        <text class="value">{{info.hwName}}</text>
+      </view>
+      <view class="row">
+        <text class="label">硬件版本</text>
+        <text class="value mono">{{info.hwVer}}</text>
+      </view>
+      <view class="row">
+        <text class="label">软件名称</text>
+        <text class="value">{{info.swName}}</text>
+      </view>
+      <view class="row">
+        <text class="label">软件版本</text>
+        <text class="value mono">{{info.swVer}}</text>
+      </view>
+    </block>
+    <view class="empty" wx:else>点「查询」发送 0x61，设备回 0x62</view>
+
+    <view class="btn-row" style="margin-top:24rpx">
+      <button class="btn primary" bindtap="onQuery" disabled="{{!connected || querying}}">查询</button>
+      <button class="btn ghost" bindtap="onCopy" disabled="{{!rawHex}}">复制原始数据</button>
+    </view>
+  </view>
+
+  <!-- 原始应答 -->
+  <view class="card" wx:if="{{rawHex}}">
+    <view class="card-title">
+      <text>原始应答</text>
+      <text class="sub">{{rawLen}} 字节</text>
+    </view>
+    <view class="log-box">
+      <view class="log-item rx"><text class="m">{{rawHex}}</text></view>
+    </view>
+  </view>
+
+  <!-- 连接详情 -->
+  <view class="card">
+    <view class="card-title">
+      <text>连接详情</text>
+    </view>
+    <view class="row">
+      <text class="label">设备名</text>
+      <text class="value">{{deviceName || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">deviceId</text>
+      <text class="value mono">{{deviceId || '—'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">主服务 UUID</text>
+      <text class="value mono">{{serviceUuid}}</text>
+    </view>
+    <view class="row">
+      <text class="label">MTU</text>
+      <text class="value mono">{{mtu}}</text>
+    </view>
+    <view class="row">
+      <text class="label">可用特征</text>
+      <text class="value mono">{{charsText}}</text>
+    </view>
+  </view>
+
+</view>

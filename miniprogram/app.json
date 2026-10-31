@@ -1,0 +1,40 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/config/config",
+    "pages/ml/ml",
+    "pages/settings/settings",
+    "pages/info/info",
+    "pages/debug/debug"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#0d1117",
+    "navigationBarTitleText": "RACE 22 调试台",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0d1117",
+    "backgroundColorTop": "#0d1117",
+    "backgroundColorBottom": "#0d1117"
+  },
+  "tabBar": {
+    "color": "#6e7681",
+    "selectedColor": "#2f81f7",
+    "backgroundColor": "#161b22",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "设备" },
+      { "pagePath": "pages/config/config", "text": "配网" },
+      { "pagePath": "pages/ml/ml", "text": "推理" },
+      { "pagePath": "pages/settings/settings", "text": "设置" }
+    ]
+  },
+  "permission": {
+    "scope.bluetooth": {
+      "desc": "用于搜索并连接附近的充电桩设备"
+    }
+  },
+  "requiredPrivateInfos": [],
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -72,6 +72,20 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
         }
         case WIFI_EVENT_STA_DISCONNECTED:
         {
+            /* 打印断开原因码：这是排查"配了网却连不上"最关键的线索。
+             * 常见值：
+             *   2    AUTH_EXPIRE          认证超时
+             *   3    AUTH_FAIL            认证失败（多为密码错/加密方式不匹配）
+             *   8    ASSOC_LEAVE          本机主动断开
+             *   15   4WAY_HANDSHAKE_TIMEOUT  四次握手超时（密码错最常见）
+             *   201  NO_AP_FOUND          没扫到该 SSID（5GHz / 信号弱 / 隐藏 SSID）
+             *   205  CONNECTION_FAIL      连接失败（AP 拒绝或信道问题） */
+            wifi_event_sta_disconnected_t *disc = (wifi_event_sta_disconnected_t *)event_data;
+            ESP_LOGW(WIFI_TAG, "AP 断开 reason=%d (ssid=\"%.*s\")",
+                     disc ? disc->reason : -1,
+                     disc ? disc->ssid_len : 0,
+                     disc ? (const char *)disc->ssid : "");
+
             /* 无条件重连（只要仍期望连接）。
              *
              * 原实现在此处判断 `esp32_wifi_conn == 1`，但该变量在 GOT_IP 时已被
@@ -132,9 +146,18 @@ int esp32_wifi_set_ssid(char *ssid, uint8_t len_ssid)
         return -1;
     }
 
+    /* 边界保护：wifi_config.sta.ssid 是 32 字节数组。
+     * 若 len_ssid == 32 就直接写 ssid[32]='\0'，会溢出到 password 字段。
+     * 这里限制到 31 字节，保证始终有终止符（协议侧允许到 32，实际极少见）。 */
+    if (len_ssid > sizeof(wifi_config.sta.ssid) - 1)
+    {
+        ESP_LOGW(WIFI_TAG, "SSID 长度 %u 超限，截断为 31 字节", len_ssid);
+        len_ssid = sizeof(wifi_config.sta.ssid) - 1;
+    }
+
     // set SSID
+    memset(wifi_config.sta.ssid, 0, sizeof(wifi_config.sta.ssid));
     memcpy((char *)wifi_config.sta.ssid, ssid, len_ssid);
-    wifi_config.sta.ssid[len_ssid] = '\0';
 
     // set Wifi config
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -153,9 +176,17 @@ int esp32_wifi_set_passwd(char *passwd, uint8_t len_passwd)
 #endif
         return -1;
     }
+    /* 边界保护：password 是 64 字节数组，WPA2 口令最长 63 字符，
+     * 同 SSID 一样避免 len == 64 时越界写终止符。 */
+    if (len_passwd > sizeof(wifi_config.sta.password) - 1)
+    {
+        ESP_LOGW(WIFI_TAG, "密码长度 %u 超限，截断为 63 字节", len_passwd);
+        len_passwd = sizeof(wifi_config.sta.password) - 1;
+    }
+
     // set PASSWD
+    memset(wifi_config.sta.password, 0, sizeof(wifi_config.sta.password));
     memcpy((char *)wifi_config.sta.password, passwd, len_passwd);
-    wifi_config.sta.password[len_passwd] = '\0';
 
     // set Wifi config
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -191,12 +222,23 @@ int esp32_wifi_connect(void)
     }
 
     expect_connect = true; /* 期望保持连接，掉线后自动重连 */
-    if (esp32_wifi_conn == 0)
-    {
-        esp_wifi_disconnect();
-    }
+
+    /* 无论当前处于什么状态，先断开再连。
+     *
+     * 原实现只在 esp32_wifi_conn == 0 时断开，而该变量在 STA_DISCONNECTED 里
+     * 已被置 1，于是"重试连接中又收到新配置"时直接 esp_wifi_connect()，
+     * 驱动返回 "sta is connecting, return error"，新 SSID/密码要等本次失败
+     * 重试才生效 —— 表现为"下发新配置没反应、还是用旧的尝试"。
+     * esp_wifi_disconnect() 在未连接状态下调用是安全的（返回 ESP_OK）。 */
+    esp_wifi_disconnect();
+
     retry_num = 0;
-    esp_wifi_connect();
+    esp_err_t err = esp_wifi_connect();
+    if (err != ESP_OK)
+    {
+        /* 事件回调可能已抢先发起连接，此时返回 ESP_ERR_WIFI_STATE，可忽略 */
+        ESP_LOGW(WIFI_TAG, "esp_wifi_connect() 返回 0x%x（通常已在连接中，可忽略）", err);
+    }
     return 0;
 }
 

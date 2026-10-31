@@ -1,0 +1,102 @@
+<view class="page">
+
+  <view class="notice warn" wx:if="{{!connected}}">
+    设备未连接。请先到「设备」页扫码连接，再回来配网。
+  </view>
+
+  <!-- 配置结果 -->
+  <view class="card" wx:if="{{statusVisible}}">
+    <view class="card-title">
+      <text>配置结果（0x5A）</text>
+      <text class="badge info">{{statusTime}}</text>
+    </view>
+    <view class="row">
+      <text class="label">配置接收</text>
+      <text class="badge {{status.recv ? 'ok' : 'err'}}">{{status.recv ? '已接收' : '格式错误'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">网络连接</text>
+      <text class="badge {{status.net ? 'ok' : 'warn'}}">{{status.net ? '已连接' : '未连接'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">MQTT</text>
+      <text class="badge {{status.mqtt ? 'ok' : ''}}">{{status.mqtt ? '已连接' : '未开始'}}</text>
+    </view>
+  </view>
+
+  <!-- 表单 -->
+  <view class="card">
+    <view class="card-title">
+      <text>WiFi 配置</text>
+      <text class="sub">命令码 0x59</text>
+    </view>
+
+    <view class="field">
+      <view class="field-label">SSID</view>
+      <input class="input" value="{{ssid}}" placeholder="WiFi 名称" bindinput="onSsid" placeholder-class="ph" />
+      <view style="margin-top:12rpx" wx:if="{{ssids.length}}">
+        <text class="badge info" style="margin-right:12rpx" wx:for="{{ssids}}" wx:key="*this" data-ssid="{{item}}" bindtap="onPickSsid">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="field-label">密码</view>
+      <view style="display:flex;gap:16rpx;align-items:center">
+        <input class="input" value="{{pwd}}" password="{{!showPwd}}" placeholder="WiFi 密码" bindinput="onPwd" placeholder-class="ph" />
+        <button class="btn small ghost" bindtap="togglePwd" style="flex-shrink:0">{{showPwd ? '隐藏' : '显示'}}</button>
+      </view>
+    </view>
+
+    <view class="field">
+      <view class="field-label">IP 方式</view>
+      <picker range="{{ipModes}}" value="{{ipModeIdx}}" bindchange="onIpMode">
+        <view class="picker-box">
+          <text>{{ipModes[ipModeIdx]}}</text>
+          <text class="arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <block wx:if="{{ipModeIdx === 1}}">
+      <view class="notice warn">
+        当前固件（ble_app.c）只解析 SSID / 密码，静态 IP 段带过去会被忽略。需要真实静态 IP 支持请先改固件。
+      </view>
+      <view class="field">
+        <view class="field-label">IP 地址</view>
+        <input class="input" value="{{ip}}" placeholder="192.168.1.100" bindinput="onField" data-key="ip" placeholder-class="ph" />
+      </view>
+      <view class="field">
+        <view class="field-label">子网掩码</view>
+        <input class="input" value="{{netmask}}" placeholder="255.255.255.0" bindinput="onField" data-key="netmask" placeholder-class="ph" />
+      </view>
+      <view class="field">
+        <view class="field-label">网关</view>
+        <input class="input" value="{{gw}}" placeholder="192.168.1.1" bindinput="onField" data-key="gw" placeholder-class="ph" />
+      </view>
+      <view class="field">
+        <view class="field-label">DNS</view>
+        <input class="input" value="{{dns}}" placeholder="留空则用网关" bindinput="onField" data-key="dns" placeholder-class="ph" />
+      </view>
+    </block>
+
+    <view class="btn-row" style="margin-top:24rpx">
+      <button class="btn primary" bindtap="onSend" disabled="{{!connected || sending}}">发送配置</button>
+    </view>
+  </view>
+
+  <!-- 组包预览 -->
+  <view class="card">
+    <view class="card-title">
+      <text>组包预览</text>
+      <text class="sub">{{previewLen}} 字节 / {{chunkCount}} 片</text>
+    </view>
+    <view class="log-box" wx:if="{{preview}}">
+      <view class="log-item sys"><text class="m">{{preview}}</text></view>
+    </view>
+    <view class="empty" wx:else>填写 SSID 后显示</view>
+    <view class="notice" style="margin-top:20rpx;margin-bottom:0">
+      SSID / 密码按 UTF-8 字节计长（中文 1 字 = 3 字节）。超过 20 字节时会自动切成多片发送，需要固件支持下行重组。
+    </view>
+  </view>
+
+</view>

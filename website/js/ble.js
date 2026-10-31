@@ -295,17 +295,41 @@ class BleClient {
     /* ----------------------------------------------------------------------
      * 发送数据
      * -------------------------------------------------------------------- */
+    /**
+     * 写数据（自动分片）
+     *
+     * 浏览器同样受 MTU-3 限制（默认 MTU 23 → 单次最多 20 字节），
+     * 超过会直接抛 "value byte length exceeds" 错误。
+     * 微信小程序端也是 20 字节上限，两端保持一致的分片策略，
+     * 由固件的下行重组层（spp_rx_feed）负责还原。
+     */
     async write(uuid, bytes) {
         const ch = this.chars.get(uuid);
         if (!ch) throw new Error(`特征 ${fullUuid(uuid)} 不可用`);
 
-        // WRITE_NO_RSP 优先（快），不支持则退回 WRITE
-        if (ch.properties.writeWithoutResponse) {
-            await ch.writeValueWithoutResponse(bytes);
-        } else if (ch.properties.write) {
-            await ch.writeValue(bytes);
-        } else {
-            throw new Error(`特征 ${fullUuid(uuid)} 不支持写入`);
+        const chunkSize = 20;
+        const gapMs = 20;
+        const src = bytes instanceof Uint8Array ? bytes : Uint8Array.from(bytes);
+
+        for (let off = 0; off < src.length; off += chunkSize) {
+            const part = src.subarray(off, Math.min(off + chunkSize, src.length));
+
+            // WRITE_NO_RSP 优先（快），不支持则退回 WRITE
+            if (ch.properties.writeWithoutResponse) {
+                await ch.writeValueWithoutResponse(part);
+            } else if (ch.properties.write) {
+                await ch.writeValue(part);
+            } else {
+                throw new Error(`特征 ${fullUuid(uuid)} 不支持写入`);
+            }
+
+            if (off + chunkSize < src.length) {
+                await new Promise(r => setTimeout(r, gapMs));
+            }
+        }
+
+        if (src.length > chunkSize) {
+            emit('sys', `已分片写入 ${Math.ceil(src.length / chunkSize)} 片，共 ${src.length} 字节`);
         }
     }
 

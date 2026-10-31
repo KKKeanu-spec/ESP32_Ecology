@@ -1,0 +1,62 @@
+<view class="page">
+
+  <view class="notice warn" wx:if="{{!connected}}">
+    设备未连接，只能查看历史日志。
+  </view>
+
+  <!-- 手动发送 -->
+  <view class="card">
+    <view class="card-title">
+      <text>手动发送</text>
+      <text class="sub">{{bytes}} 字节 / {{chunks}} 片</text>
+    </view>
+
+    <view class="field">
+      <view class="field-label">通道</view>
+      <picker range="{{channelNames}}" value="{{channelIdx}}" bindchange="onChannel">
+        <view class="picker-box">
+          <text>{{channelNames[channelIdx]}}</text>
+          <text class="arrow">▼</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="field">
+      <view class="field-label">HEX（空格、逗号、0x 前缀都可）</view>
+      <textarea class="hex-input" value="{{hexInput}}" placeholder="59 02 01 08 74 65 73 74 77 69 66 69 08 31 32 33 34 35 36 37 38" bindinput="onHexInput" auto-height maxlength="-1" />
+    </view>
+
+    <view class="btn-row">
+      <button class="btn primary" bindtap="onSend" disabled="{{!connected}}">发送</button>
+      <button class="btn ghost" bindtap="onFillHwQuery">填入 0x61</button>
+    </view>
+    <view class="btn-row" style="margin-top:16rpx">
+      <button class="btn small ghost" bindtap="onQuickStart">0xE1 启动</button>
+      <button class="btn small ghost" bindtap="onQuickStop">0xE0 停止</button>
+      <button class="btn small ghost" bindtap="onQuickRun">0xE2 x=0.25</button>
+    </view>
+  </view>
+
+  <!-- 日志 -->
+  <view class="card">
+    <view class="card-title">
+      <text>收发日志</text>
+      <text class="sub">{{logs.length}} 条</text>
+    </view>
+
+    <view class="log-box" wx:if="{{logs.length}}">
+      <view class="log-item {{item.dir}}" wx:for="{{logs}}" wx:key="ts">
+        <text class="t">{{item.time}}</text>
+        <text class="m">{{item.text}}</text>
+        <text class="m" wx:if="{{item.hex}}"> {{item.hex}}</text>
+      </view>
+    </view>
+    <view class="empty" wx:else>暂无日志，连接设备后收发数据会显示在这里</view>
+
+    <view class="btn-row" style="margin-top:20rpx">
+      <button class="btn small ghost" bindtap="onCopy">复制全部</button>
+      <button class="btn small danger" bindtap="onClear">清空</button>
+    </view>
+  </view>
+
+</view>

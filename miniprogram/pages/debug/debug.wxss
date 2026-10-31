@@ -1,0 +1,17 @@
+.hex-input {
+  width: 100%;
+  min-height: 160rpx;
+  background: #0d1117;
+  border: 1rpx solid #30363d;
+  border-radius: 10rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+  font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 24rpx;
+  color: #e6edf3;
+  line-height: 1.6;
+}
+
+.ph {
+  color: #4b5563;
+}
